@@ -1,0 +1,404 @@
+#include<windows.h>
+#include"CScreen.h"
+#include"Image.h"
+#include"base.h"
+#include"main.h"
+#include"gamemain.h"
+
+//動作フラグチェック
+void Gamemain::MFlagCheck()
+{
+	this->AttackF=0;//攻撃フラグ初期化
+	switch(this->Player.Flag)
+	{
+	case M_Walk://歩きの場合
+			this->WalkMODE();//歩き処理
+			break;//=======================================
+
+	case M_Jump://ジャンプの場合
+		this->JumpMODE();//ジャンプ処理
+
+	break;
+	//=======================================================
+	//攻撃=================================================
+	case M_Attack:
+		this->AttackMODE();//攻撃処理
+			break;
+			//==================================================
+	case M_Shoot://発射準備
+		this->ShootMODE();//発射処理
+			break;
+			//============================================================
+			//==================ライフ減少処理（ノックバックと無敵処理)//このフラグが立っているとHPが減らない
+	case M_LIFEM:
+		this->MutekiMODE();//ライフ減少処理
+				break;
+			//=============================================================
+			//============================待機
+	case M_Wait:
+		this->WaitMODE();//待機モーション
+		break;
+	}//switch
+}
+//==========================================================
+//待機モーション
+void Gamemain::WaitMODE()
+{
+			if(this->Player.POSFlag!=0)//左向きの場合
+		{
+			if(this->Count>0&&this->Count<=40)
+			{
+			Dbuff.SetBufM(this->Player_Wait.animation[0],this->Player.x,this->Player.y,this->Dispx);
+			}else{
+			Dbuff.SetBufM(this->Player_Wait.animation[1],this->Player.x,this->Player.y,this->Dispx);
+			}
+		}else{
+						if(this->Count>0&&this->Count<=40)
+						{
+			Dbuff.SetBuf(this->Player_Wait.animation[0],this->Player.x,this->Player.y,this->Dispx);
+						}else{
+			Dbuff.SetBuf(this->Player_Wait.animation[1],this->Player.x,this->Player.y,this->Dispx);
+						}
+		}//else
+}
+
+//ライフ減少処理
+void Gamemain::MutekiMODE()
+{
+					if(this->Player.POSFlag!=0)//左向きの場合
+				{
+															if(this->Player.MFlag>=3)//フラグが3以上の場合
+										{
+					this->Player.x+=5;
+					if(this->Player.MFlag%2==0)//2で割ったあまりが0の場合
+					{
+					Dbuff.SetBufMD(this->Player_Jump.animation[2],this->Player.x,this->Player.y,this->Dispx);
+					Player.MFlag++;
+					}else{//それ以外
+											Dbuff.SetBufM(this->Player_Jump.animation[2],this->Player.x,this->Player.y,this->Dispx);
+											Player.MFlag++;//
+					}
+										}else{
+					if(this->Player.MFlag>=0)//フラグがゼロ以上の場合
+					{
+					this->Player.x+=10;
+					this->Player.y-=Gravity+6;
+					Dbuff.SetBufMD(this->Player_Jump.animation[2],this->Player.x,this->Player.y,this->Dispx);
+					Player.MFlag++;
+					}
+															}
+				}else{
+										if(this->Player.MFlag>=3)//フラグが3以上の場合
+										{
+					this->Player.x-=5;
+					if(this->Player.MFlag%2==0)//2で割ったあまりが0の場合
+					{
+					Dbuff.SetBufD(this->Player_Jump.animation[2],this->Player.x,this->Player.y,this->Dispx);
+					Player.MFlag++;
+					}else{//それ以外
+											Dbuff.SetBuf(this->Player_Jump.animation[2],this->Player.x,this->Player.y,this->Dispx);
+											Player.MFlag++;//
+					}
+										}else{
+					if(this->Player.MFlag>=0)//フラグがゼロ以上の場合
+					{
+					this->Player.x-=10;
+					this->Player.y-=Gravity+6;
+					Dbuff.SetBufD(this->Player_Jump.animation[2],this->Player.x,this->Player.y,this->Dispx);
+					Player.MFlag++;
+					}else{
+					}
+										}
+				}
+				if(this->Player.MFlag==10)//フラグの上限
+				{
+					Player.MFlag=0;
+					Player.Flag=M_Wait;
+				}
+}
+//発射処理
+void Gamemain::ShootMODE()
+{
+			if(this->Player.POSFlag!=0)//左向きの場合
+		{
+						if(this->Player.MFlag==20)
+			{
+			Dbuff.SetBufM(Player_Shot.animation[1],Player.x,Player.y,Dispx);//リセット
+				Player.MFlag=M_Wait;
+				Player.Flag=M_Wait;
+						}else{
+						if(this->Player.MFlag>8)
+			{
+			Dbuff.SetBufM(Player_Shot.animation[1],Player.x,Player.y,Dispx);//少し待機
+				Player.MFlag++;
+						}else{
+			if(this->Player.MFlag==8)
+			{
+			Dbuff.SetBufM(Player_Shot.animation[1],Player.x,Player.y,Dispx);//ボタンを押す
+				Player.MFlag++;
+				this->Damage=SHOOT_G;
+				PLAYWAVE(ShootSE,0);
+				this->Pbullet.MFlag=1;//発射フラグ
+			}else{
+			if(this->Player.MFlag>=0)
+			{
+				Dbuff.SetBufM(Player_Shot.animation[0],Player.x,Player.y,Dispx);//持ち上げアニメーション
+				Player.MFlag++;
+			}else{
+			}
+			}
+						}
+						}
+		}else{
+						if(this->Player.MFlag==20)
+			{
+			Dbuff.SetBuf(Player_Shot.animation[1],Player.x,Player.y,Dispx);//リセット
+				Player.MFlag=M_Wait;
+				Player.Flag=M_Wait;
+						}else{
+						if(this->Player.MFlag>8)
+			{
+			Dbuff.SetBuf(Player_Shot.animation[1],Player.x,Player.y,Dispx);//少し待機
+				Player.MFlag++;
+						}else{
+			if(this->Player.MFlag==8)
+			{
+			Dbuff.SetBuf(Player_Shot.animation[1],Player.x,Player.y,Dispx);//ボタンを押す
+				Player.MFlag++;
+				this->Damage=SHOOT_G;
+				PLAYWAVE(ShootSE,0);
+				this->Pbullet.Flag=1;//発射フラグ
+			}else{
+			if(this->Player.MFlag>=0)
+			{
+				Dbuff.SetBuf(Player_Shot.animation[0],Player.x,Player.y,Dispx);//持ち上げアニメーション
+				Player.MFlag++;
+			}else{
+			}
+			}
+						}
+						}
+		}
+}
+//ジャンプ処理
+void Gamemain::JumpMODE()
+{
+	this->KEYCHK.KeySet()
+		;//キーセット
+					if(this->Player.POSFlag!=0)//右向きでなかったら(左向き)
+				{
+
+					if(this->KEYCHK.KEY_A!=0x00)
+					{
+						Player.x-=Walk_x;
+						if(Player.x<Draw_min&&Dispx==Draw_min)
+			{
+				Player.x+=Walk_x;//マップ端で戻る処理
+			}
+					}
+					if(this->KEYCHK.KEY_D!=0x00)
+					{
+						Player.x+=Walk_x;
+						if(Player.x>Map_Max&&Dispx>Draw_max-1000)//マップの端の場合戻る
+			{
+				Player.x-=Walk_x;
+			}
+					}
+					if(Player.MFlag>=11)//７より上の場合
+					{
+						if(Player.y==Y_MAX||Pchk!=0)//
+						{
+
+			Player.MFlag=0;//フラグリセット
+			Player.Flag=M_Wait;//フラグリセット
+			Dbuff.SetBufM(Player_Jump.animation[0],Player.x,Player.y,Dispx);
+						}else{//
+						Dbuff.SetBufM(Player_Jump.animation[3],Player.x,Player.y,Dispx);
+						}
+					}else{//
+					if(Player.MFlag>=Jump_MAX)
+					{
+						Player.y-=Gravity+JumpUp;
+						Dbuff.SetBufM(Player_Jump.animation[2],Player.x,Player.y,Dispx);
+					}else{//
+					if(Player.MFlag>=4)
+					{
+						Player.y-=Gravity+JumpUp*2;
+						Dbuff.SetBufM(Player_Jump.animation[1],Player.x,Player.y,Dispx);
+					}else{//
+					if(this->Player.MFlag>=0)
+					{
+						Dbuff.SetBufM(Player_Jump.animation[0],Player.x,Player.y,Dispx);
+					}else{//
+					}//2
+					}//4
+					}//3
+					}//7
+			Player.MFlag++;//MFlag加算
+				}else{
+			//→向き========================================
+					if(this->KEYCHK.KEY_A!=0x00)
+					{
+						Player.x-=Walk_x;
+						if(Player.x<Draw_min&&Dispx==Draw_min)
+			{
+				Player.x+=Walk_x;//マップ端で戻る処理
+			}
+					}
+					if(this->KEYCHK.KEY_D!=0x00)
+					{
+						Player.x+=Walk_x;
+						if(Player.x>Map_Max&&Dispx>Draw_max-1000)//マップの端の場合戻る
+			{
+				Player.x-=Walk_x;
+			}
+					}
+					if(Player.MFlag>=11)//７より上の場合
+					{
+						if(Player.y==Y_MAX||Pchk!=0)//フラグチェック
+						{
+
+			Player.MFlag=0;//フラグリセット
+			Player.Flag=M_Wait;//フラグリセット
+			Dbuff.SetBuf(Player_Jump.animation[0],Player.x,Player.y,Dispx);
+						}else{//
+						Dbuff.SetBuf(Player_Jump.animation[3],Player.x,Player.y,Dispx);
+						}
+					}else{//
+					if(Player.MFlag>=Jump_MAX)
+					{
+						Player.y-=Gravity+JumpUp;
+						Dbuff.SetBuf(Player_Jump.animation[2],Player.x,Player.y,Dispx);
+					}else{//
+					if(Player.MFlag>=4)
+					{
+						Player.y-=Gravity+JumpUp*2;
+						Dbuff.SetBuf(Player_Jump.animation[1],Player.x,Player.y,Dispx);
+					}else{//
+					if(this->Player.MFlag>=0)
+					{
+						Dbuff.SetBuf(Player_Jump.animation[0],Player.x,Player.y,Dispx);
+					}else{//
+					}//2
+					}//4
+					}//3
+					}//7
+								Player.MFlag++;//MFlag加算
+				}
+}
+//攻撃処理
+void Gamemain::AttackMODE()
+{
+		if(this->Player.POSFlag!=0)//左向きの場合
+	{
+
+				if(Player.MFlag==20)//フラグリセット
+		{
+			AttackF=0;//攻撃フラグOFF
+			Player.Flag=M_Wait;
+			Player.MFlag=0;
+			Dbuff.SetBufM(Player_Attack.animation[2],Player.x,Player.y,Dispx);
+		}else{
+			if(Player.MFlag>11)//攻撃続ける
+			{
+			Dbuff.SetBufM(Player_Attack.animation[2],Player.x,Player.y,Dispx);
+			}else{
+			if(Player.MFlag>=10)//攻撃進む
+			{
+				AttackF=1;//攻撃フラグON
+				PLAYWAVE(AttackSE,0);
+				Player.x-=Walk_x*4;//進む
+							if(Player.x<Draw_min&&Dispx==Draw_min)
+			{
+				Player.x+=Walk_x*4;//マップ端で戻る処理
+			}
+				Dbuff.SetBufM(Player_Attack.animation[2],Player.x,Player.y,Dispx);
+			}else{
+			if(Player.MFlag>=3)//初期動作
+			{
+				
+				Dbuff.SetBufM(Player_Attack.animation[1],Player.x,Player.y,Dispx);
+			}else{
+		if(Player.MFlag>=0)//初期動作
+		{
+			Dbuff.SetBufM(Player_Attack.animation[0],Player.x,Player.y,Dispx);
+		}else{
+		}//0
+			}//3
+			}//10
+			}//10～
+			Player.MFlag++;
+		}//リセットフラグ
+	}else{
+		if(Player.MFlag==20)//フラグリセット
+		{
+			AttackF=0;
+			Player.Flag=M_Wait;
+			Player.MFlag=0;//攻撃フラグOFF
+			Dbuff.SetBuf(Player_Attack.animation[2],Player.x,Player.y,Dispx);
+		}else{
+			if(Player.MFlag>11)//攻撃続ける
+			{
+			Dbuff.SetBuf(Player_Attack.animation[2],Player.x,Player.y,Dispx);
+			}else{
+			if(Player.MFlag>=10)//攻撃進む
+			{
+				AttackF=1;//攻撃フラグON
+				PLAYWAVE(AttackSE,0);
+				Player.x+=Walk_x*4;//進む
+						if(Player.x>Map_Max&&Dispx>Draw_max-1000)//マップの端の場合戻る
+			{
+				Player.x-=Walk_x*4;
+			}
+				Dbuff.SetBuf(Player_Attack.animation[2],Player.x,Player.y,Dispx);
+			}else{
+			if(Player.MFlag>=3)//初期動作
+			{
+				Dbuff.SetBuf(Player_Attack.animation[1],Player.x,Player.y,Dispx);
+			}else{
+		if(Player.MFlag>=0)//初期動作
+		{
+			Dbuff.SetBuf(Player_Attack.animation[0],Player.x,Player.y,Dispx);
+		}else{
+		}//0
+			}//3
+			}//10
+			}//10～
+			Player.MFlag++;
+		}//リセットフラグ
+	}
+}
+//歩き処理
+void Gamemain::WalkMODE()
+{
+			if(Gas!=0)//ガソが０でなければ
+		{
+		this->AttackF=1;
+		}
+					this->Player.DFlag+=W_anim;//アニメーションフラグ加算
+			if(this->Player.DFlag>Max_anim)//アニメーション上限を超えたら
+			{
+				Player.DFlag=0;
+			}//
+		if(this->Player.POSFlag!=0)//右向きでなかったら(左向き)
+		{
+						this->Player.x-=Walk_x;//5戻る
+
+
+			if(Player.x<Draw_min&&Dispx==Draw_min)
+			{
+				Player.x+=Walk_x;//マップ端で戻る処理
+			}
+			Dbuff.SetBufM(this->Player_Walk.animation[(int)this->Player.DFlag],this->Player.x,this->Player.y,this->Dispx);
+			Player.Flag=M_Wait;//0にセット
+		}else{//(右向き)
+						this->Player.x+=Walk_x;//5進む
+
+			if(Player.x>Map_Max&&Dispx>Draw_max-1000)//マップの端の場合戻る
+			{
+				Player.x-=Walk_x;
+			}
+			Dbuff.SetBuf(this->Player_Walk.animation[(int)this->Player.DFlag],this->Player.x,this->Player.y,this->Dispx);
+			Player.Flag=M_Wait;//0にセット
+		}//
+}
